@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 3d (ESKF for IMU integration)
+
+- `skyfix-core::Eskf<T, N>` — Error-State Kalman Filter generic over state dimension. Stores a *nominal* trajectory and an *error-state* covariance; the error-state mean is held at zero by construction (reset after every update by injecting the correction into the nominal). Joseph-form covariance update.
+- `skyfix-core::ImuIntegrator<T, N, U>` trait — strapdown integration step driven by a `U`-dimensional control input. Returns the next nominal, the error-state Jacobian `F`, and the additive process-noise covariance `Q`.
+- `skyfix-core::Imu2DStrapdown<T>` — 2D body-frame IMU + yaw-rate integrator (N=5 state `[px, py, vx, vy, θ]`, U=3 control `[a_body_x, a_body_y, gyro_z]`). Rotates body-frame acceleration into the navigation frame using a midpoint heading, updates velocity and position, advances heading. Process-noise covariance derived from `accel_sigma` and `gyro_sigma`.
+- 7 integration tests in `tests/eskf.rs` covering: zero-input stationarity, constant-velocity dead-reckoning, body-frame accel projection via heading, gyro-only rotation, perfect-IMU dead-reckoning through `Eskf::predict`, the full IMU+range fusion scenario (RMSE < 0.30 m at σ=0.2 m range noise), and `set_nominal` re-seeding from a closed-form fix.
+- Quaternion-attitude / 3D variant deferred — current implementation is Euclidean only. The injection step is the future hook for manifold-valued attitudes.
+
 ### Phase 8a (release polish)
 
 - `.github/workflows/cuda.yml` — dedicated CUDA build-only workflow using `Jimver/cuda-toolkit@v0.2.21` to install CUDA Toolkit 12.0 on `ubuntu-latest`. Triggered on changes to `crates/skyfix-cuda/**`. GPU tests stay on the dev box (and a future self-hosted runner) since GitHub-hosted runners are GPU-less.

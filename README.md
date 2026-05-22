@@ -20,10 +20,11 @@ A Cargo workspace for UAV position estimation: range / bearing / RSSI measuremen
 | Bayesian | `Ekf<T, N>` | EKF + Joseph-form covariance | ✓ |
 | Bayesian | `Ukf<T, N, SIGMAS>` | classic Unscented Transform | ✓ |
 | Bayesian | `Pf<T, N, K>` | SIR + systematic resampling | ✓ |
+| Bayesian | `Eskf<T, N>` + `Imu2DStrapdown` | Error-State KF for IMU + range fusion | ✓ |
 | Analysis | `CrlbBuilder` + `CrlbAnalysis` | Fisher Information / CRLB / GDOP | ✓ |
 | GPU | `CudaGdopSweep2D` | batched 2D GDOP via NVIDIA CUDA | (std) |
 
-53 tests passing across 12 test binaries. Demo binary (`cargo run -p skyfix-sim`) tracks a moving 2D target with RMSE 0.22 m at σ = 0.2 m range noise.
+68 tests passing (61 CPU + 7 GPU) across 14 test binaries. Demo binary (`cargo run -p skyfix-sim`) tracks a moving 2D target with RMSE 0.22 m at σ = 0.2 m range noise.
 
 ## Quick start
 

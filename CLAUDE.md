@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Phases 0–6a + 6b + Phase 3e + Phase 5a + Phase 7a + Phase 8a complete** (as of 2026-05-22). v0.1.0-alpha is **release-ready** pending git commits + crates.io Trusted Publisher setup. **61 tests passing** (54 CPU + 7 GPU).
+**Phases 0–6a + 6b + Phase 3d + Phase 3e + Phase 5a + Phase 7a + Phase 8a complete** (as of 2026-05-22). v0.1.0-alpha is **release-ready** pending crates.io Trusted Publisher setup. **68 tests passing** (61 CPU + 7 GPU).
 
 The GPU now has two end-to-end ops cross-validated against the CPU reference: `CudaGdopSweep2D` (batched 2D GDOP) and `CudaPfRanges2D` (2D particle filter with range-anchor updates, host-side RNG for deterministic cross-checks). Both run on the RTX 5090 in our local environment.
 
@@ -51,6 +51,10 @@ Shipped in `skyfix-core`:
 | RSSI          | `RssiPathLoss<T>`                   | log-distance calib.               | 2     |
 | Bayesian      | `Ekf<T, N>`                         | EKF + Joseph form                 | 3a    |
 | Bayesian      | `Ukf<T, N, SIGMAS>` (+ `Ukf2D/3D/4D/6D` aliases) | classic UT (α=1, β=2, κ=3−N) | 3b    |
+| Bayesian      | `Pf<T, N, K>`                       | SIR particle filter               | 3e    |
+| Bayesian      | `Eskf<T, N>` + `Imu2DStrapdown`     | Error-State KF, IMU strapdown     | 3d    |
+| Hybrid        | `HybridTdoaAoa2D<T>`                | TDoA + AoA Gauss-Newton           | 3c    |
+| Analysis      | `CrlbBuilder<T, N>` + `CrlbAnalysis`| CRLB / GDOP / HDOP / VDOP         | 4     |
 
 `EstimationError` includes `DidNotConverge` for iterative estimators.
 
@@ -103,8 +107,16 @@ Together: **7 GPU tests** + 2 runnable example demos (`multi_filter_comparison` 
 - **Systematic resampling** — variance-minimal among single-sample schemes. `resample_if_needed(threshold_frac, uniform)` triggers when ESS drops below `threshold_frac × K`.
 - **Singular Q gracefully handled**: if `model.noise(dt)` is singular (e.g. zero process noise), the predict step uses the deterministic transition only — `normal` is not called. Documented in the `predict` docstring.
 
+## Phase 3d (ESKF for IMU integration)
+
+`skyfix-core::Eskf<T, N>` — generic Error-State Kalman Filter, paired with the `ImuIntegrator<T, N, U>` trait for strapdown integration. Ships the Euclidean variant (state injection = vector addition); the manifold variant for quaternion attitude is a future hook in the `update` injection step.
+
+`skyfix-core::Imu2DStrapdown<T>` — concrete integrator for the v0.1 headline scenario: 2D position + velocity + heading, body-frame accel + yaw-rate gyro. Midpoint heading rotation, simple `σ² · dt²` discretization for the process-noise covariance.
+
+7 integration tests in `tests/eskf.rs` covering the integrator algebra (zero input, constant-velocity dead-reckoning, body-frame accel projection, gyro-only rotation), `Eskf::predict` dead-reckoning, and a full IMU+range fusion scenario landing RMSE < 30 cm at σ=0.2 m range noise.
+
 ## Phase 3 / 6 deferred (not blockers for v0.1)
-- **Phase 3d**: ESKF for IMU integration (pair with `skyfix-imu` driver crate)
+- **Phase 3d-3d/quaternion**: 3D ESKF with quaternion attitude (manifold injection)
 - **Phase 3e-alloc**: Dynamic-K PF behind the `alloc` feature for very large ensembles
 - **Phase 6b**: Batched PF on CUDA via Thrust-style parallel-scan resampling (needs cuRAND device-side sampling)
 - **Phase 6c**: MUSIC/ESPRIT eigendecomposition via cuSOLVER (add the `cusolver` cudarc feature)
