@@ -3,7 +3,6 @@ title = "The skyfix Book"
 description = "A practical guide to Rust UAV localization & triangulation for the edge."
 authors = ["Daniel <daniel@thinktronltd.com>"]
 language = "en"
-multilingual = false
 src = "src"
 
 [build]
@@ -17,7 +16,6 @@ git-repository-url = "https://github.com/danghoangnhan/skyfix"
 edit-url-template = "https://github.com/danghoangnhan/skyfix/edit/main/book/{path}"
 no-section-label = false
 mathjax-support = true
-git-repository-icon = "fa-github"
 
 [output.html.fold]
 enable = true
