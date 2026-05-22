@@ -22,7 +22,7 @@ std = ["skyfix-core/std"]
 libm = ["skyfix-core/libm"]
 
 [dependencies]
-skyfix-core = { path = "../skyfix-core", default-features = false }
+skyfix-core = { path = "../skyfix-core", version = "=0.1.0-alpha.0", default-features = false }
 nalgebra = { workspace = true }
 
 [dev-dependencies]

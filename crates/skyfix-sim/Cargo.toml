@@ -15,7 +15,7 @@ name = "skyfix-sim"
 path = "src/main.rs"
 
 [dependencies]
-skyfix-core = { path = "../skyfix-core", features = ["std", "alloc"] }
+skyfix-core = { path = "../skyfix-core", version = "=0.1.0-alpha.0", features = ["std", "alloc"] }
 nalgebra = { workspace = true, features = ["std"] }
 rand = "0.9"
 rand_chacha = "0.9"

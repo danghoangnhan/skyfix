@@ -10,7 +10,12 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # When advisories arrive that we've evaluated and accepted, list them here
 # with an inline comment justifying the exception.
-ignore = []
+ignore = [
+    # paste 1.0.15 is unmaintained but pulled in only transitively through
+    # simba → nalgebra. There is no safe upgrade. Track upstream nalgebra
+    # for a replacement; revisit when a paste-free simba release lands.
+    { id = "RUSTSEC-2024-0436", reason = "transitive via simba/nalgebra; no upgrade path until upstream replaces paste" },
+]
 
 [licenses]
 version = 2

@@ -11,7 +11,7 @@ authors.workspace = true
 publish = false
 
 [dependencies]
-skyfix-core = { path = "../skyfix-core", features = ["std"] }
+skyfix-core = { path = "../skyfix-core", version = "=0.1.0-alpha.0", features = ["std"] }
 cudarc = { workspace = true }
 
 [dev-dependencies]
