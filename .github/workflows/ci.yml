@@ -57,6 +57,30 @@ jobs:
           key: embed-${{ matrix.target }}
       - run: cargo build -p skyfix-core --no-default-features --features libm --target ${{ matrix.target }}
 
+  no-cuda-leak:
+    # Guard against CUDA dependencies sneaking into the embedded build path.
+    # The skyfix-cuda crate must stay a *separate* workspace member; if anyone
+    # adds a `cuda` feature to skyfix-core that pulls cudarc in transitively,
+    # this job catches it before merge.
+    name: no-cuda-leak (Cortex-M dep graph)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88
+        with:
+          targets: thumbv7em-none-eabihf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: no-cuda-leak
+      - name: Inspect skyfix-core embedded dep graph
+        run: |
+          tree=$(cargo tree -p skyfix-core --target thumbv7em-none-eabihf --no-default-features --features libm 2>&1)
+          echo "$tree"
+          if echo "$tree" | grep -iE 'cuda|cudarc|libloading|nvrtc'; then
+            echo "::error::CUDA-related crate leaked into skyfix-core embedded build"
+            exit 1
+          fi
+
   deny:
     name: cargo-deny
     runs-on: ubuntu-latest

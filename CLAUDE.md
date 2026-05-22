@@ -4,7 +4,112 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Phase 0 skeleton in place** (as of 2026-05-22). Workspace exists with three crate shells: `skyfix-core`, `skyfix-sim`, `skyfix-fixtures`. No estimators implemented yet — Phase 1 is next. The design below remains the authoritative roadmap; update it from the code as implementation lands.
+**Phases 0–6a + 6b + Phase 3e + Phase 5a + Phase 7a + Phase 8a complete** (as of 2026-05-22). v0.1.0-alpha is **release-ready** pending git commits + crates.io Trusted Publisher setup. **61 tests passing** (54 CPU + 7 GPU).
+
+The GPU now has two end-to-end ops cross-validated against the CPU reference: `CudaGdopSweep2D` (batched 2D GDOP) and `CudaPfRanges2D` (2D particle filter with range-anchor updates, host-side RNG for deterministic cross-checks). Both run on the RTX 5090 in our local environment.
+
+The skyfix-core CPU surface ships the full Bayesian filter trio (EKF, UKF, PF) plus the CRLB analyzer. The first end-to-end CUDA op (`CudaGdopSweep2D`) runs on the RTX 5090. The `skyfix-sim` demo binary runs the whole library end-to-end on a 100-step circular-trajectory scenario. CI now has three workflows (ci, cuda, release), the no-cuda-leak guard, and a Trusted Publishing-OIDC scaffold. **53 tests passing.**
+
+## Tagging v0.1.0-alpha.0 (when ready)
+
+1. Commit the workspace (Phase 0–8a) — blocked on git identity at the time of writing.
+2. Configure Trusted Publisher for `skyfix-core` at https://crates.io/me/tokens once the user (`danghoangnhan`) creates the empty crate name. Set repo = `danghoangnhan/skyfix`, workflow file = `release.yml`, environment = (empty), then save.
+3. Optionally bump `workspace.package.version` in root `Cargo.toml` from `0.1.0-alpha.0` → `0.1.0-alpha.1` (the release.yml workflow verifies the git tag matches this version).
+4. `git tag v0.1.0-alpha.0 && git push origin v0.1.0-alpha.0` → release.yml fires, runs `cargo publish -p skyfix-core` with the OIDC token.
+
+## Running the demo
+
+```sh
+cargo run -p skyfix-sim --release
+# → prints RMSE + final error, writes truth.csv / estimate.csv / anchors.csv
+
+cargo run -p skyfix-sim --release --example trilateration_to_ekf
+# → trilateration cold start → 30 EKF cycles, prints estimate trajectory
+
+cargo run -p skyfix-sim --release --example multi_filter_comparison
+# → side-by-side Trilateration / EKF / UKF / PF table + wide-format CSV
+```
+
+The multi-filter comparison is the marketing demo — runs all four estimators on identical noisy measurements and prints RMSE / max-error / wall-time per method. Empirically on the 100-step circular scenario: Trilateration 0.32 m RMSE / 2.78 µs total; EKF 0.22 m / 12 µs; UKF 0.22 m / 23 µs; PF (K=512) 0.24 m / 2.23 ms.
+
+The default demo uses 4 anchors at the corners of a 10×10 m room, σ=0.2 m range noise, EKF seeded from a `ToaTrilateration` cold-start fix. Empirically: RMSE ~0.22 m, final error ~0.27 m over 10 s of simulated flight.
+
+CSV output is the demo's plotting boundary — `plotters` was dropped because its TTF font backend pulls in `fontconfig-sys` (system dep). Plot from CSV with gnuplot / matplotlib / Excel; a feature-gated PNG output is a Phase 5b follow-up once font handling is sorted.
+
+Shipped in `skyfix-core`:
+
+| Modality      | Estimator                           | Type                              | Phase |
+|---------------|-------------------------------------|-----------------------------------|-------|
+| (core)        | `Estimator<T, N>` trait             | single-shot API surface           | 1     |
+| (core)        | `numeric::{solve_linear_system, solve_normal_equations, gauss_newton, invert_square, cholesky}` | hand-rolled dense solvers | 1→3 |
+| (core)        | `filter::{TransitionModel, ObservationModel}` traits + `IdentityTransition`, `RangeAnchor` built-in models | filter API surface | 3a |
+| ToA           | `ToaTrilateration<T, N>`            | closed-form (N+1)                 | 1     |
+| ToA           | `ToaNls<T, N>`                      | Gauss-Newton (≥ N)                | 2     |
+| TDoA          | `ChanLinear2D<T>`, `ChanLinear3D<T>`| closed-form linear                | 2     |
+| TDoA          | `FoyTdoa<T, N>`                     | Taylor-series WLS                 | 2     |
+| AoA (2D)      | `StansfieldAoa<T>`                  | bearings-only LSQ                 | 2     |
+| RSSI          | `RssiPathLoss<T>`                   | log-distance calib.               | 2     |
+| Bayesian      | `Ekf<T, N>`                         | EKF + Joseph form                 | 3a    |
+| Bayesian      | `Ukf<T, N, SIGMAS>` (+ `Ukf2D/3D/4D/6D` aliases) | classic UT (α=1, β=2, κ=3−N) | 3b    |
+
+`EstimationError` includes `DidNotConverge` for iterative estimators.
+
+**Test count**: 33 tests passing.
+
+**UKF design notes**:
+- `SIGMAS` is a separate const generic that must equal `2N+1`; the type aliases enforce the right pairing.
+- Defaults are classic UT (`alpha=1, beta=2, kappa=3-N`) giving `c = N + λ = 3` and well-conditioned weights for all N. The Wan/Van der Merwe scaled variant (`alpha=1e-3`) is numerically unstable for moderate covariances (weights scale as `O(1/α²) ≈ 10⁶`); avoid it.
+- Cholesky is implemented in `numeric::cholesky` to spread sigma points.
+
+**Filter convergence regimes (empirically verified)**:
+- EKF warm start: ~1e-4 absolute error in 20 iterations × 4 anchors.
+- EKF cold start: bias floor at ~5e-2 (Jacobian linearization at the wrong prior).
+- UKF warm start: ~2.4e-4 (slightly worse than EKF when prior is good; expected — sigma-point reconstruction has finite-difference precision).
+- UKF cold start: < 2e-2 (much better than EKF's bias floor — UKF samples the curvature).
+- **Idiomatic pattern**: seed an EKF/UKF with a closed-form estimate from `ToaTrilateration` or `ChanLinear*`. The `ekf_seeded_from_trilateration_recovers_tight_estimate` test demonstrates this lands at machine precision.
+
+CI cross-compiles `skyfix-core` to `thumbv7em-none-eabihf`, `thumbv8m.main-none-eabihf`, `riscv32imac-unknown-none-elf` with `--no-default-features --features libm`.
+
+## skyfix-cuda
+
+Lives at `crates/skyfix-cuda/`. **Not** in workspace `default-members` — opt in with `cargo build -p skyfix-cuda`. Excluded from the main CI `clippy`/`build`/`test` jobs; needs its own workflow with `Jimver/cuda-toolkit` (added in Phase 6b).
+
+**Dependency stack**:
+- `cudarc 0.19.7` with features `std + driver + nvrtc + cuda-12000 + dynamic-linking`.
+- `nvrtc` feature is required because cudarc's `CudaContext::load_module()` is gated behind it (the `Ptx` type lives in the nvrtc module even when only loading pre-compiled PTX).
+- `dynamic-linking` mode: cudarc links against `libcudart.so` at build time.
+- `cuda-12000` matches Ubuntu 24.04's `nvidia-cuda-toolkit` package (CUDA 12.0.140); CUDA 13 driver runs CUDA 12 code via forward compatibility.
+
+**Kernel pipeline**:
+1. `kernels/*.cu` written in CUDA C++.
+2. `build.rs` invokes `nvcc -ptx --gpu-architecture=compute_70` to produce PTX (virtual arch; driver JIT's to actual SASS at module load).
+3. PTX is embedded via `include_str!(env!("PTX_*"))` into the Rust binary.
+4. At runtime: `CudaContext::new(0)` → `ctx.load_module(Ptx::from_src(...))` → `module.load_function("name")` → `stream.launch_builder(&func).arg(...)...launch(cfg)`.
+
+**Shipped ops**:
+- `CudaGdopSweep2D` — batched 2D GDOP over a grid of (x, y) targets, given a fixed anchor set. Closed-form 2×2 FIM inverse per cell, written in CUDA C++. CPU↔GPU crossover at ~50×50 grid; 6× speedup at 200×200.
+- `CudaPfRanges2D` — 2D particle filter with range-to-anchor updates. State + log-weights live on device; host-side RNG for deterministic cross-validation against CPU `Pf`.
+
+Together: **7 GPU tests** + 2 runnable example demos (`multi_filter_comparison` for CPU side, `gdop_grid_benchmark` for CUDA crossover).
+
+**No-CUDA-leak guard**: `cargo tree -p skyfix-core --target thumbv7em-none-eabihf --no-default-features --features libm` produces zero matches for `cuda|cudarc|libloading|nvrtc`. The separate-crate architecture (not feature flag) keeps the embedded path clean.
+
+## Particle filter (Phase 3e)
+
+`skyfix-core::Pf<T, N, K>` — Sequential-Importance-Resampling PF. Static-K design: particle ensemble is a stack-allocated `SMatrix<T, N, K>` so it runs in pure `no_std`. K is a compile-time const generic (typical 64–512 for UAV tracking).
+
+- **RNG abstraction**: `FnMut() -> T` closures for standard-normal samples (predict / from_gaussian) and uniform `[0, 1)` samples (resample). No `rand` dep in the core; user plugs in any RNG. Tests use `rand_chacha::ChaCha8Rng` via dev-dep.
+- **Log-weights internally** for numerical stability; `normalized_weights()` uses log-sum-exp before exponentiating.
+- **Systematic resampling** — variance-minimal among single-sample schemes. `resample_if_needed(threshold_frac, uniform)` triggers when ESS drops below `threshold_frac × K`.
+- **Singular Q gracefully handled**: if `model.noise(dt)` is singular (e.g. zero process noise), the predict step uses the deterministic transition only — `normal` is not called. Documented in the `predict` docstring.
+
+## Phase 3 / 6 deferred (not blockers for v0.1)
+- **Phase 3d**: ESKF for IMU integration (pair with `skyfix-imu` driver crate)
+- **Phase 3e-alloc**: Dynamic-K PF behind the `alloc` feature for very large ensembles
+- **Phase 6b**: Batched PF on CUDA via Thrust-style parallel-scan resampling (needs cuRAND device-side sampling)
+- **Phase 6c**: MUSIC/ESPRIT eigendecomposition via cuSOLVER (add the `cusolver` cudarc feature)
+
+The design below remains the authoritative roadmap; update it from the code as implementation lands.
 
 ## What skyfix is
 

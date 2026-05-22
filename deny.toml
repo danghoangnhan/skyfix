@@ -8,6 +8,8 @@ feature-depth = 1
 [advisories]
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
+# When advisories arrive that we've evaluated and accepted, list them here
+# with an inline comment justifying the exception.
 ignore = []
 
 [licenses]
@@ -32,7 +34,12 @@ multiple-versions = "warn"
 wildcards = "deny"
 highlight = "all"
 allow = []
+# Known incompatible / abandoned / vulnerable crates would go here.
 deny = []
+# When dep trees legitimately need two versions of the same crate (common
+# during ecosystem transitions like rand 0.8 ↔ 0.9), list them here.
+skip = []
+skip-tree = []
 
 [sources]
 unknown-registry = "deny"

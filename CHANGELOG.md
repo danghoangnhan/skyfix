@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 8a (release polish)
+
+- `.github/workflows/cuda.yml` — dedicated CUDA build-only workflow using `Jimver/cuda-toolkit@v0.2.21` to install CUDA Toolkit 12.0 on `ubuntu-latest`. Triggered on changes to `crates/skyfix-cuda/**`. GPU tests stay on the dev box (and a future self-hosted runner) since GitHub-hosted runners are GPU-less.
+- `.github/workflows/release.yml` — tag-triggered (`v*.*.*`) publish workflow using `rust-lang/crates-io-auth-action@v1` for Trusted Publishing OIDC. Verifies tag matches `Cargo.toml` version before publishing `skyfix-core`. Other workspace crates remain `publish = false` until Phase 7+.
+- `.github/workflows/ci.yml` — new `no-cuda-leak` job that runs `cargo tree -p skyfix-core --target thumbv7em-none-eabihf` and fails on any `cuda*` / `cudarc` / `libloading` / `nvrtc` match. Catches the failure mode where someone adds a CUDA feature to `skyfix-core` and breaks all embedded consumers.
+- `README.md` — rewritten for public-facing first impression. Includes the empirical demo numbers (RMSE 0.22 m), the algorithm matrix, the architecture-decisions block, and the production-adoption context (Tweede Golf / Tangram Vision / Fusion Engineering as the verified Rust-on-UAV datapoints).
+- `deny.toml` — added inline comments at each section for the `ignore` / `deny` / `skip` lists, so future maintainers know where to put justifications.
+- `book/` — mdBook skeleton (`book/src/{intro,quickstart,chapter_01_trilateration,chapter_02_filters,chapter_03_crlb,chapter_04_gpu,chapter_05_embedded}.md`) for the long-form tutorial reproducing `UCNLNav` / `pylocus` reference vectors.
+
 ### Phase 7a (skyfix-uwb adapter)
 
 - New `skyfix-uwb` workspace crate — hardware-agnostic data layer for UWB ranging. `#![no_std]` by default; opt into `std`/`libm` features for desktop / embedded targets respectively.
