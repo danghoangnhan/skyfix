@@ -16,8 +16,9 @@
 | Bayesian | `Ukf<T, N, SIGMAS>` (+ aliases)     | classic UT           | 3b    |
 | Bayesian | `Pf<T, N, K>`                       | SIR particle filter  | 3e    |
 | Hybrid   | `HybridTdoaAoa2D<T>`                | TDoA+AoA Gauss-Newton| 3c    |
+| Analysis | `CrlbBuilder<T, N>` + `CrlbAnalysis`| CRLB / GDOP / HDOP / VDOP | 4 |
 
-Phase 3 follow-ups: ESKF (when `skyfix-imu` lands). The CRLB/GDOP analyzer lands in Phase 4.
+Phase 3 follow-ups: ESKF (when `skyfix-imu` lands). Phase 2 deferred: Chan stage-2 ML refinement and 3D AoA (azimuth + elevation).
 
 ## Features
 

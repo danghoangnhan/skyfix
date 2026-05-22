@@ -6,6 +6,7 @@
 extern crate alloc;
 
 pub mod aoa;
+pub mod crlb;
 pub mod ekf;
 pub mod error;
 pub mod estimator;
@@ -24,6 +25,7 @@ pub use estimator::Estimator;
 pub use measurement::{AoaBearing, RssiSample, TdoaMeasurement, ToaMeasurement};
 
 pub use aoa::StansfieldAoa;
+pub use crlb::{CrlbAnalysis, CrlbBuilder};
 pub use ekf::Ekf;
 pub use filter::{IdentityTransition, ObservationModel, RangeAnchor, TransitionModel};
 pub use hybrid::HybridTdoaAoa2D;

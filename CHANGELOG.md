@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 4 (CRLB / FIM / GDOP analyzer)
+
+- `skyfix-core::CrlbBuilder<T, N>` — Fisher-Information accumulator with `.add_toa()`, `.add_tdoa()`, and (2D-only) `.add_aoa()` methods.
+- `skyfix-core::CrlbAnalysis<T, N>` — frozen CRLB analysis with `.covariance()` (=FIM⁻¹), `.gdop()`, `.hdop()` (2D + 3D), `.vdop()` (3D).
+- Integration tests in `tests/crlb.rs` (7 tests).
+
 ### Phase 3e (particle filter)
 
 - `skyfix-core::Pf<T, N, K>` — Sequential-Importance-Resampling particle filter. Static-K (compile-time const generic), `no_std`-compatible (stack-allocated `SMatrix<T, N, K>` ensemble).
