@@ -1,0 +1,23 @@
+# Build artifacts
+/target
+**/target
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+*.profraw
+*.profdata
+/coverage
+/tarpaulin-report.html
+
+# Local agent / planning artifacts
+.claude/

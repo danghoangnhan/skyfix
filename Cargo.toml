@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0-alpha.0"
+edition = "2021"
+rust-version = "1.87"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/danghoangnhan/skyfix"
+homepage = "https://github.com/danghoangnhan/skyfix"
+authors = ["Daniel <daniel@thinktronltd.com>"]
+keywords = ["uav", "drone", "localization", "triangulation", "embedded"]
+categories = ["embedded", "no-std", "science", "algorithms"]
+readme = "README.md"
+
+[workspace.dependencies]
+# Math core (no_std-capable)
+nalgebra = { version = "0.34", default-features = false }
+libm = "0.2"
+
+# Error handling
+thiserror = "2"
+
+# Embedded logging
+defmt = "0.3"
+
+# Serialization (optional, no_std-capable)
+serde = { version = "1", default-features = false, features = ["derive"] }
+
+# Dev / test
+approx = "0.5"
+proptest = "1"
+
+# CUDA stack — added in Phase 6 (skyfix-cuda only)
+# cudarc = { version = "0.13", default-features = false, features = ["cuda-12090", "cublas", "cusolver", "cufft", "driver"] }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+
+# Size-over-speed profile for MCU targets
+[profile.release-mcu]
+inherits = "release"
+opt-level = "z"
+debug = false
+strip = "symbols"
