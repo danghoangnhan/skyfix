@@ -12,8 +12,12 @@
 | TDoA     | `FoyTdoa<T, N>`                     | Taylor-series WLS    | 2     |
 | AoA (2D) | `StansfieldAoa<T>`                  | bearings-only LSQ    | 2     |
 | RSSI     | `RssiPathLoss<T>` (calibration)     | log-distance model   | 2     |
+| Bayesian | `Ekf<T, N>`                         | EKF + Joseph form    | 3a    |
+| Bayesian | `Ukf<T, N, SIGMAS>` (+ aliases)     | classic UT           | 3b    |
+| Bayesian | `Pf<T, N, K>`                       | SIR particle filter  | 3e    |
+| Hybrid   | `HybridTdoaAoa2D<T>`                | TDoA+AoA Gauss-Newton| 3c    |
 
-Bayesian filters (EKF/UKF/PF) and the CRLB/GDOP analyzer land in Phases 3 and 4.
+Phase 3 follow-ups: ESKF (when `skyfix-imu` lands). The CRLB/GDOP analyzer lands in Phase 4.
 
 ## Features
 
