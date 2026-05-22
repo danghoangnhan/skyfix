@@ -786,6 +786,10 @@ version = "0.1.0-alpha.0"
 name = "skyfix-sim"
 version = "0.1.0-alpha.0"
 dependencies = [
+ "nalgebra",
+ "rand",
+ "rand_chacha",
+ "rand_distr",
  "skyfix-core",
 ]
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 5b-1 (multi-filter comparison demo)
+
+- New example `cargo run -p skyfix-sim --release --example multi_filter_comparison` — runs Trilateration / EKF / UKF / PF (K=512) on a single shared scenario (identical truth + identical noisy measurements), prints RMSE / max-error / wall-time table, writes wide-format `multi_comparison.csv` for plotting.
+- The showcase demo: makes the practical accuracy/cost trade-offs across all four estimation strategies legible at a glance. Empirically on a 100-step circular scenario at σ=0.2 m: Trilateration 0.32 m RMSE / 2.78 µs; EKF 0.22 m / 12 µs; UKF 0.22 m / 23 µs; PF (K=512) 0.24 m / 2.23 ms.
+
+### Phase 5a (skyfix-sim binary + examples)
+
+- `skyfix-sim` crate now has a runnable binary (`cargo run -p skyfix-sim`) that simulates 100 steps of circular-trajectory tracking with 4 corner anchors and σ=0.2 m range noise. Writes CSV output (truth, estimate, anchors) for downstream plotting.
+- Library primitives in `skyfix-sim::lib`: `Anchor2D`, `Trajectory2D` trait + `CircularTrajectory` impl, `ToASimulator2D` (noisy measurement generator), `StepRecord` + `rmse` helpers.
+- Example `cargo run -p skyfix-sim --example trilateration_to_ekf` demonstrates the idiomatic trilateration → EKF bootstrap pattern (closed-form fix as initial state, EKF for refinement).
+- `plotters` deliberately omitted (system `fontconfig` dep friction). CSV output is the plotting boundary; users plot with their preferred tool.
+
 ### Phase 4 (CRLB / FIM / GDOP analyzer)
 
 - `skyfix-core::CrlbBuilder<T, N>` — Fisher-Information accumulator with `.add_toa()`, `.add_tdoa()`, and (2D-only) `.add_aoa()` methods.
