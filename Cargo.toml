@@ -1,11 +1,19 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
+# skyfix-cuda excluded from default-members so `cargo build` works on hosts
+# without a CUDA toolkit. Build it explicitly with `cargo build -p skyfix-cuda`.
+default-members = [
+    "crates/skyfix-core",
+    "crates/skyfix-sim",
+    "crates/skyfix-fixtures",
+    "crates/skyfix-uwb",
+]
 
 [workspace.package]
 version = "0.1.0-alpha.0"
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/danghoangnhan/skyfix"
 homepage = "https://github.com/danghoangnhan/skyfix"
@@ -32,8 +40,15 @@ serde = { version = "1", default-features = false, features = ["derive"] }
 approx = "0.5"
 proptest = "1"
 
-# CUDA stack — added in Phase 6 (skyfix-cuda only)
-# cudarc = { version = "0.13", default-features = false, features = ["cuda-12090", "cublas", "cusolver", "cufft", "driver"] }
+# CUDA stack (skyfix-cuda only). Ubuntu 24.04 ships CUDA Toolkit 12.0.140 via
+# nvidia-cuda-toolkit, so the matching cudarc feature is `cuda-12000`.
+cudarc = { version = "0.19", default-features = false, features = [
+    "std",
+    "driver",
+    "nvrtc",
+    "cuda-12000",
+    "dynamic-linking",
+] }
 
 [profile.release]
 codegen-units = 1

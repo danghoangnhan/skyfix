@@ -1,0 +1,63 @@
+name: CUDA
+
+# Dedicated workflow for skyfix-cuda. Separate from the main `CI` workflow
+# because GitHub-hosted runners ship no CUDA Toolkit by default — Jimver's
+# action installs it on demand here, but doing that on every CI job would
+# inflate the per-PR cycle time for changes that don't touch CUDA.
+#
+# GitHub-hosted runners also have no GPU, so this workflow is build-only:
+# it catches API breakage in cudarc / cuSOLVER signatures and verifies the
+# nvcc kernel pipeline still works. Cross-validation against the CPU
+# `CrlbBuilder` runs locally on the dev box's RTX 5090 (and on a self-hosted
+# GPU runner once one is provisioned).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/skyfix-cuda/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/cuda.yml'
+  pull_request:
+    paths:
+      - 'crates/skyfix-cuda/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  build:
+    name: build skyfix-cuda
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CUDA Toolkit 12.0
+        id: cuda-toolkit
+        uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          cuda: '12.0.1'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart-dev", "nvrtc-dev"]'
+      - uses: dtolnay/rust-toolchain@1.88
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cuda
+      - name: Show toolchain
+        run: |
+          nvcc --version
+          rustc --version
+          cargo --version
+      - name: Build skyfix-cuda
+        env:
+          CUDA_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+        run: cargo build -p skyfix-cuda --release
+      - name: Clippy skyfix-cuda
+        env:
+          CUDA_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+        run: cargo clippy -p skyfix-cuda --all-targets -- -Dwarnings

@@ -1,0 +1,27 @@
+[package]
+name = "skyfix-cuda"
+description = "NVIDIA CUDA acceleration for skyfix (batched GDOP, particle filter, MUSIC eigendecomposition)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+skyfix-core = { path = "../skyfix-core", version = "=0.1.0-alpha.0", features = ["std"] }
+cudarc = { workspace = true }
+
+[dev-dependencies]
+approx = { workspace = true }
+nalgebra = { workspace = true, features = ["std"] }
+# Deterministic RNG for CPU↔GPU cross-validation tests.
+rand = "0.9"
+rand_chacha = "0.9"
+rand_distr = "0.5"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

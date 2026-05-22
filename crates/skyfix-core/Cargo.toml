@@ -13,23 +13,26 @@ categories.workspace = true
 readme = "README.md"
 
 [features]
-default = []
+default = ["std"]
 libm = ["nalgebra/libm"]
 alloc = []
-std = ["alloc", "nalgebra/std", "dep:thiserror"]
+std = ["alloc", "nalgebra/std"]
 serde = ["dep:serde", "nalgebra/serde-serialize"]
 defmt = ["dep:defmt"]
 
 [dependencies]
 nalgebra = { workspace = true }
 libm = { workspace = true }
-thiserror = { workspace = true, optional = true }
 defmt = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 approx = { workspace = true }
 proptest = { workspace = true }
+# Seedable deterministic RNG + Normal distribution for particle filter tests.
+rand = { version = "0.9", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
+rand_distr = { version = "0.5", default-features = false }
 
 [package.metadata.docs.rs]
 all-features = true

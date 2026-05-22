@@ -1,6 +1,7 @@
 # Build artifacts
 /target
 **/target
+/book/build
 
 # IDE
 .idea/
@@ -21,3 +22,10 @@ Thumbs.db
 
 # Local agent / planning artifacts
 .claude/
+
+# skyfix-sim output artifacts
+/truth.csv
+/estimate.csv
+/anchors.csv
+/skyfix-demo.png
+/multi_comparison.csv
