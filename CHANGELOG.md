@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 7a (skyfix-uwb adapter)
+
+- New `skyfix-uwb` workspace crate — hardware-agnostic data layer for UWB ranging. `#![no_std]` by default; opt into `std`/`libm` features for desktop / embedded targets respectively.
+- `UwbRange<N>` — anchor EUI-64 + position + range_m + optional timestamp. Designed to be the natural output of a DW3000 ranging exchange.
+- `UwbRange::to_toa()` — convert to `skyfix_core::ToaMeasurement` for trilateration / NLS / Bayesian filters.
+- `pair_to_tdoa(reference, other)` and `ranges_to_tdoa_batch(&ranges, &mut output)` — TDoA conversion helpers. The batch variant takes a caller-supplied output buffer for `no_std` usage (stack array or `heapless::Vec`).
+- 5 integration tests demonstrating typical pipelines: ToA → Trilateration, TDoA batch → ChanLinear2D, sign-correctness of pair_to_tdoa, 3D timestamp roundtrip.
+- Phase 7b (actual dw3000-ng driver integration with SPI/IRQ/calibration) deferred until the project has an embedded target wired up.
+
 ### Phase 6 polish (CPU↔GPU GDOP benchmark)
 
 - `cargo run -p skyfix-cuda --release --example gdop_grid_benchmark` — measures CPU `CrlbBuilder` loop vs GPU `CudaGdopSweep2D` batched kernel across grid sizes from 10×10 to 200×200, cross-validates every cell within 1e-3 relative tolerance, prints a speedup table.
