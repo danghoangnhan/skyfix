@@ -13,17 +13,16 @@ categories.workspace = true
 readme = "README.md"
 
 [features]
-default = []
+default = ["std"]
 libm = ["nalgebra/libm"]
 alloc = []
-std = ["alloc", "nalgebra/std", "dep:thiserror"]
+std = ["alloc", "nalgebra/std"]
 serde = ["dep:serde", "nalgebra/serde-serialize"]
 defmt = ["dep:defmt"]
 
 [dependencies]
 nalgebra = { workspace = true }
 libm = { workspace = true }
-thiserror = { workspace = true, optional = true }
 defmt = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 

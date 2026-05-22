@@ -34,6 +34,26 @@ jobs:
             test)   cargo test --workspace ;;
           esac
 
+  embedded:
+    name: embedded (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - thumbv7em-none-eabihf
+          - thumbv8m.main-none-eabihf
+          - riscv32imac-unknown-none-elf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.87
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: embed-${{ matrix.target }}
+      - run: cargo build -p skyfix-core --no-default-features --features libm --target ${{ matrix.target }}
+
   deny:
     name: cargo-deny
     runs-on: ubuntu-latest
