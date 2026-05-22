@@ -19,7 +19,7 @@ jobs:
         task: [fmt, clippy, build, test]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.87
+      - uses: dtolnay/rust-toolchain@1.88
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
@@ -27,11 +27,14 @@ jobs:
           key: ${{ matrix.task }}
       - name: Run ${{ matrix.task }}
         run: |
+          # skyfix-cuda excluded here because GitHub Actions ubuntu-latest
+          # ships no CUDA toolkit. A dedicated cuda.yml workflow uses
+          # Jimver/cuda-toolkit to build skyfix-cuda separately.
           case "${{ matrix.task }}" in
             fmt)    cargo fmt --all --check ;;
-            clippy) cargo clippy --workspace --all-targets -- -Dwarnings ;;
-            build)  cargo build --workspace ;;
-            test)   cargo test --workspace ;;
+            clippy) cargo clippy --workspace --exclude skyfix-cuda --all-targets -- -Dwarnings ;;
+            build)  cargo build --workspace --exclude skyfix-cuda ;;
+            test)   cargo test --workspace --exclude skyfix-cuda ;;
           esac
 
   embedded:
@@ -46,7 +49,7 @@ jobs:
           - riscv32imac-unknown-none-elf
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.87
+      - uses: dtolnay/rust-toolchain@1.88
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
@@ -61,4 +64,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          rust-version: "1.87"
+          rust-version: "1.88"

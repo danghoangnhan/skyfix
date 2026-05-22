@@ -1,7 +1,7 @@
 [toolchain]
-# MSRV: nalgebra 0.34 requires edition 2024 → Rust 1.87+. Bumped from the research
+# MSRV: nalgebra 0.34 requires edition 2024 → Rust 1.88+. Bumped from the research
 # report's 1.81 recommendation, which was based on older microfft / spectrum-analyzer
 # bounds; revisit if those become deps and pin lower.
-channel = "1.87"
+channel = "1.88"
 components = ["clippy", "rustfmt"]
 profile = "minimal"

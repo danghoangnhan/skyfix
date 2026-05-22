@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 6 polish (CPU↔GPU GDOP benchmark)
+
+- `cargo run -p skyfix-cuda --release --example gdop_grid_benchmark` — measures CPU `CrlbBuilder` loop vs GPU `CudaGdopSweep2D` batched kernel across grid sizes from 10×10 to 200×200, cross-validates every cell within 1e-3 relative tolerance, prints a speedup table.
+- Empirical crossover on the RTX 5090: ~50×50 grid (2 500 cells). At 200×200 (40 000 cells) the GPU is 6× faster; further linear scaling expected at larger grids.
+
+### Phase 6b (CUDA particle filter)
+
+- `skyfix-cuda::CudaPfRanges2D` — GPU-resident 2D particle filter with range-to-anchor updates. State + log-weights live on device across calls; only `mean()` / `effective_sample_size()` / `download()` transfer back to host.
+- Two new CUDA kernels in `kernels/pf_kernels_2d.cu`:
+  - `pf_predict_2d` — applies `x_i ← x_i + L · z_i` per particle, with host-supplied standard-normal samples and Cholesky factor of `Q`.
+  - `pf_update_range_2d` — log-likelihood update `log_w_i −= ½ · (z − ‖x_i − anchor‖)² / variance`.
+- Host-side RNG (caller-supplied noise samples) — deliberate choice that makes deterministic cross-validation against the CPU `Pf` trivial. Future revision can swap in device-side cuRAND for throughput.
+- 3 GPU tests in `tests/pf_cross_validation.rs`: mean matches CPU to f32 precision after zero-noise steps, ESS matches within 5% after a skewed update, input-validation rejects bad sizes.
+- `CudaError` gained `SizeMismatch { expected, got }` and `NoParticles` variants.
+- `skyfix-cuda` split into modules: `lib.rs` (re-exports + error + GDOP), `pf.rs` (PF). Existing `CudaGdopSweep2D` API unchanged.
+
+### Phase 6a (skyfix-cuda)
+
+- New `skyfix-cuda` workspace crate. Excluded from `default-members` so `cargo build` doesn't require the CUDA toolkit.
+- `CudaGdopSweep2D` — batched 2D GDOP analyzer running on the GPU. Wraps a hand-written CUDA C++ kernel (`kernels/gdop_2d.cu`) compiled to PTX by `build.rs` (`nvcc -ptx --gpu-architecture=compute_70`).
+- `cudarc 0.19.7` with `std + driver + nvrtc + cuda-12000 + dynamic-linking` features. Targets Ubuntu 24.04's `nvidia-cuda-toolkit` (CUDA 12.0.140); CUDA 13 driver runs it via forward compatibility.
+- 4 GPU cross-validation tests, all passing on the RTX 5090.
+- `cargo tree` verifies `cudarc` does not leak into `skyfix-core` embedded dep graphs.
+- MSRV bumped 1.87 → 1.88 (`libloading 0.9.0`, pulled in by cudarc, requires 1.88).
+- CI workflow updated to `--exclude skyfix-cuda` from `clippy` / `build` / `test` jobs (a separate `cuda.yml` workflow with `Jimver/cuda-toolkit` lands in Phase 8a release polish).
+
 ### Phase 5b-1 (multi-filter comparison demo)
 
 - New example `cargo run -p skyfix-sim --release --example multi_filter_comparison` — runs Trilateration / EKF / UKF / PF (K=512) on a single shared scenario (identical truth + identical noisy measurements), prints RMSE / max-error / wall-time table, writes wide-format `multi_comparison.csv` for plotting.
